@@ -1,5 +1,5 @@
-title: Perf — Dynamic Asset Network
-description: Rotating asset network with additional mutation load — each billboard and polyline has its own colour that cycles every 500 ms, and ~1% of connections get their endpoints rewired to new assets every second. Logs p50/p95/p99 CPU/GPU frame times to the console every 5 seconds.
+title: Perf 2 — Coloured Polylines
+description: "PolylineCollection under the same orbit motion as #1, plus colour + rewire churn. Per-line Material updates on the individual-polyline path."
 development: false
 labels:
   - Showcases

@@ -1,5 +1,5 @@
-title: Perf — Rotating Asset Network
-description: Benchmark scene with 516 assets (~1548 billboards + ~1548 labels) and 4762 polylines connecting them, all rotated around a common centre every frame via preRender. Logs p50/p95/p99 CPU frame time and GPU time (where supported) to the console every 5 seconds.
+title: Perf 1 — Plain Polylines
+description: PolylineCollection with kit orbit motion, no colour churn. Baseline for per-frame position updates on the individual-polyline path.
 development: false
 labels:
   - Showcases

@@ -1,5 +1,5 @@
-title: Perf — Moving Asset Network (clock-driven)
-description: 516 assets (~2580 billboards + labels) and 4762 BufferPolyline connections. ~8% of assets orbit their base position with elliptical motion and ~3% of assets / ~2% of lines are recoloured once per elapsed clock second. All animation is driven by viewer.clock, so scrubbing/speeding the timeline speeds the motion. Logs p50/p95/p99 CPU/GPU frame times every 5 seconds.
+title: Perf 3 — Buffered Coloured Polylines
+description: "Same motion + churn as #2 but rendered with BufferPolylineCollection (batched GPU buffer). Only variable vs #2 is the polyline rendering path."
 development: false
 labels:
   - Showcases
