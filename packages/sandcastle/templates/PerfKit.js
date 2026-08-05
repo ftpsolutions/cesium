@@ -1,13 +1,6 @@
-// ═════════════════════════════════════════════════════════════════════════
-// MASTER TEMPLATE — this file is NOT imported at runtime by any sandcastle.
-// It's the canonical source of the `createPerfKit` function. Copy the
-// createPerfKit block below into each perf-* sandcastle's main.js as-is,
-// then use the returned kit. When you change the kit, update this master
-// AND the inlined block in every sandcastle.
-// ═════════════════════════════════════════════════════════════════════════
+import * as Cesium from "cesium";
 
-// eslint-disable-next-line no-unused-vars
-function createPerfKit(options = {}) {
+export function createPerfKit(options = {}) {
   const {
     assetCount = 500,
     connectionCount = 5000,
@@ -23,9 +16,10 @@ function createPerfKit(options = {}) {
     connectionColourChangePercentage = 0.1,
     connectionRewireIntervalSeconds = 1,
     connectionRewireFraction = 0.1,
+    assetColourFactory,
+    connectionColourFactory,
   } = options;
 
-  // ── Deterministic PRNG (mulberry32-ish) ─────────────────────────────
   function createRandomGenerator(seed) {
     let value = seed >>> 0;
     return function random() {
@@ -37,7 +31,6 @@ function createPerfKit(options = {}) {
     };
   }
 
-  // ── Sunflower / golden-angle disc distribution ──────────────────────
   function createDistributedPositions(count, radius) {
     const positions = [];
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -56,7 +49,6 @@ function createPerfKit(options = {}) {
     return positions;
   }
 
-  // ── Colour + SVG helpers ────────────────────────────────────────────
   function getRandomColor(random, alpha = 1) {
     return new Cesium.Color(
       0.35 + random() * 0.65,
@@ -92,7 +84,6 @@ function createPerfKit(options = {}) {
 </svg>
 `);
 
-  // ── Add one "asset with A/B badges" to the given collections ────────
   function addAssetVisual({
     billboards,
     labels,
@@ -190,16 +181,15 @@ function createPerfKit(options = {}) {
     }
   }
 
-  // ── Frame time logger. Returns stop(). ──────────────────────────────
   function installFrameTimeLogger(viewer, options = {}) {
     const opts =
       typeof options === "number" ? { intervalMs: options } : options;
     const {
-      intervalMs = 5000,
+      intervalMs = 1000,
       hud = true,
       hudParent = viewer.container,
       maxSamples = 200_000,
-      autoLog = true,
+      autoLog = false,
       name = "sandcastle",
     } = opts;
     const startedAt = new Date().toISOString();
@@ -243,15 +233,21 @@ function createPerfKit(options = {}) {
       let batchDisjoint = 0;
       gpuTimer = {
         beginFrame() {
-          if (active !== null) return;
+          if (active !== null) {
+            return;
+          }
           const q = pool.pop() ?? gl.createQuery();
-          if (!q) return;
+          if (!q) {
+            return;
+          }
           gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
           active = q;
           activeStartMs = performance.now();
         },
         endFrame() {
-          if (active === null) return;
+          if (active === null) {
+            return;
+          }
           gl.endQuery(ext.TIME_ELAPSED_EXT);
           pending.push({ query: active, timeMs: activeStartMs });
           active = null;
@@ -259,8 +255,9 @@ function createPerfKit(options = {}) {
         drain() {
           while (pending.length > 0) {
             const head = pending[0];
-            if (!gl.getQueryParameter(head.query, gl.QUERY_RESULT_AVAILABLE))
+            if (!gl.getQueryParameter(head.query, gl.QUERY_RESULT_AVAILABLE)) {
               break;
+            }
             pending.shift();
             const ms =
               gl.getQueryParameter(head.query, gl.QUERY_RESULT) / 1_000_000;
@@ -269,7 +266,9 @@ function createPerfKit(options = {}) {
           }
           if (gl.getParameter(ext.GPU_DISJOINT_EXT)) {
             batchDisjoint++;
-            for (const p of pending) pool.push(p.query);
+            for (const p of pending) {
+              pool.push(p.query);
+            }
             pending.length = 0;
           }
           const disjointEvents = batchDisjoint;
@@ -277,7 +276,7 @@ function createPerfKit(options = {}) {
           return disjointEvents;
         },
       };
-    } else if (autoLog) {
+    } else {
       console.log(
         "[frame] GPU timer unavailable (need Chromium desktop + WebGL2)",
       );
@@ -289,7 +288,9 @@ function createPerfKit(options = {}) {
     const onPreRender = () => gpuTimer?.beginFrame();
     const onPostRender = () => {
       gpuTimer?.endFrame();
-      if (frameStartTime === null) return;
+      if (frameStartTime === null) {
+        return;
+      }
       pushSample(
         performance.now() - frameStartTime,
         frameStartTime,
@@ -303,24 +304,28 @@ function createPerfKit(options = {}) {
     viewer.scene.postRender.addEventListener(onPostRender);
     let hudEls = null;
     function mountHud(parent) {
-      if (hudEls) return;
+      if (hudEls) {
+        return;
+      }
       const container = parent ?? hudParent;
-      if (!container || !container.appendChild) return;
+      if (!container || !container.appendChild) {
+        return;
+      }
       const el = document.createElement("div");
       el.style.cssText =
-        "position:absolute;bottom:40px;right:10px;z-index:1000;" +
+        "position:absolute;top:10px;left:10px;z-index:1000;" +
         "padding:8px 10px;background:rgba(0,0,0,0.72);color:#fff;" +
         "font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;" +
         "border-radius:6px;min-width:180px;pointer-events:auto;" +
         "box-shadow:0 2px 8px rgba(0,0,0,0.4);";
       el.innerHTML =
-        '<div style="opacity:.7;margin-bottom:4px;">frame times (last ' +
-        Math.round(intervalMs / 1000) +
-        "s)</div>" +
-        '<div>CPU p95: <b data-hud="cpu">—</b> ms</div>' +
-        '<div>GPU p95: <b data-hud="gpu">—</b> ms</div>' +
-        '<div style="opacity:.7;margin-top:4px;">frames: <span data-hud="frames">0</span></div>' +
-        '<button data-hud="download" style="margin-top:8px;width:100%;padding:4px 8px;font:inherit;cursor:pointer;">⬇ Download logs</button>';
+        `<div style="opacity:.7;margin-bottom:4px;">frame times (last ${Math.round(
+          intervalMs / 1000,
+        )}s)</div>` +
+        `<div>CPU p95: <b data-hud="cpu">—</b> ms</div>` +
+        `<div>GPU p95: <b data-hud="gpu">—</b> ms</div>` +
+        `<div style="opacity:.7;margin-top:4px;">frames: <span data-hud="frames">0</span></div>` +
+        `<button data-hud="download" style="margin-top:8px;width:100%;padding:4px 8px;font:inherit;cursor:pointer;">⬇ Download logs</button>`;
       container.appendChild(el);
       const q = (s) => el.querySelector(s);
       hudEls = {
@@ -333,12 +338,16 @@ function createPerfKit(options = {}) {
       hudEls.download.addEventListener("click", () => downloadLogs());
     }
     function unmountHud() {
-      if (!hudEls) return;
+      if (!hudEls) {
+        return;
+      }
       hudEls.root.remove();
       hudEls = null;
     }
     function updateHud() {
-      if (!hudEls) return;
+      if (!hudEls) {
+        return;
+      }
       hudEls.cpu.textContent =
         latestCpuP95 !== null ? latestCpuP95.toFixed(2) : "—";
       hudEls.gpu.textContent =
@@ -357,7 +366,9 @@ function createPerfKit(options = {}) {
       const takeWindow = (values, timestamps) => {
         const window = [];
         for (let i = timestamps.length - 1; i >= 0; i -= 1) {
-          if (timestamps[i] < cutoff) break;
+          if (timestamps[i] < cutoff) {
+            break;
+          }
           window.push(values[i]);
         }
         return window;
@@ -429,7 +440,9 @@ function createPerfKit(options = {}) {
       viewer.scene.postRender.removeEventListener(onPostRender);
       unmountHud();
     }
-    if (hud) mountHud();
+    if (hud) {
+      mountHud();
+    }
     return {
       stop,
       downloadLogs,
@@ -443,7 +456,6 @@ function createPerfKit(options = {}) {
     };
   }
 
-  // ── Build the shared network model ──────────────────────────────────
   const random = createRandomGenerator(seed);
   const centreWorld = Cesium.Cartesian3.fromDegrees(
     centre.longitude,
@@ -460,7 +472,9 @@ function createPerfKit(options = {}) {
     index,
     basePosition,
     position: Cesium.Cartesian3.clone(basePosition),
-    color: getRandomColor(random),
+    color: assetColourFactory
+      ? assetColourFactory(random, index)
+      : getRandomColor(random),
     _phase: random() * Cesium.Math.TWO_PI,
     _speed: 0.6 + random() * 0.8,
     _radius: 300 + random() * movementRadius,
@@ -476,21 +490,29 @@ function createPerfKit(options = {}) {
   function pickPair() {
     const a = Math.floor(random() * assetCount);
     const b = Math.floor(random() * assetCount);
-    if (a === b) return null;
+    if (a === b) {
+      return null;
+    }
     return [Math.min(a, b), Math.max(a, b)];
   }
   while (connections.length < targetConnectionCount) {
     const pair = pickPair();
-    if (!pair) continue;
+    if (!pair) {
+      continue;
+    }
     const [startIndex, endIndex] = pair;
     const key = `${startIndex}:${endIndex}`;
-    if (connectionKeys.has(key)) continue;
+    if (connectionKeys.has(key)) {
+      continue;
+    }
     connectionKeys.add(key);
     const connection = {
       index: connections.length,
       startAssetIndex: startIndex,
       endAssetIndex: endIndex,
-      color: getRandomColor(random, 0.35),
+      color: connectionColourFactory
+        ? connectionColourFactory(random, connections.length)
+        : getRandomColor(random, 0.35),
       _key: key,
     };
     connections.push(connection);
@@ -534,13 +556,17 @@ function createPerfKit(options = {}) {
       }
     }
 
-    if (lastColourElapsed === null) lastColourElapsed = elapsedSeconds;
+    if (lastColourElapsed === null) {
+      lastColourElapsed = elapsedSeconds;
+    }
     if (elapsedSeconds - lastColourElapsed >= colourChangeIntervalSeconds) {
       lastColourElapsed = elapsedSeconds;
       const assetChurn = Math.ceil(assetCount * assetColourChangePercentage);
       for (let i = 0; i < assetChurn; i += 1) {
         const idx = Math.floor(random() * assetCount);
-        assets[idx].color = getRandomColor(random);
+        assets[idx].color = assetColourFactory
+          ? assetColourFactory(random, idx)
+          : getRandomColor(random);
         recolouredAssets.add(idx);
       }
       const lineChurn = Math.ceil(
@@ -548,12 +574,16 @@ function createPerfKit(options = {}) {
       );
       for (let i = 0; i < lineChurn; i += 1) {
         const idx = Math.floor(random() * connections.length);
-        connections[idx].color = getRandomColor(random, 0.35);
+        connections[idx].color = connectionColourFactory
+          ? connectionColourFactory(random, idx)
+          : getRandomColor(random, 0.35);
         recolouredConnections.add(idx);
       }
     }
 
-    if (lastRewireElapsed === null) lastRewireElapsed = elapsedSeconds;
+    if (lastRewireElapsed === null) {
+      lastRewireElapsed = elapsedSeconds;
+    }
     if (elapsedSeconds - lastRewireElapsed >= connectionRewireIntervalSeconds) {
       lastRewireElapsed = elapsedSeconds;
       const rewireCount = Math.ceil(
@@ -566,17 +596,25 @@ function createPerfKit(options = {}) {
         let newKey = null;
         for (let attempt = 0; attempt < 8; attempt += 1) {
           const candidate = pickPair();
-          if (!candidate) continue;
+          if (!candidate) {
+            continue;
+          }
           const key = `${candidate[0]}:${candidate[1]}`;
-          if (connectionKeys.has(key)) continue;
+          if (connectionKeys.has(key)) {
+            continue;
+          }
           pair = candidate;
           newKey = key;
           break;
         }
-        if (!pair) continue;
+        if (!pair) {
+          continue;
+        }
         const removeFrom = (arr) => {
           const at = arr.indexOf(connection.index);
-          if (at !== -1) arr.splice(at, 1);
+          if (at !== -1) {
+            arr.splice(at, 1);
+          }
         };
         removeFrom(connectionsByAssetIndex[connection.startAssetIndex]);
         removeFrom(connectionsByAssetIndex[connection.endAssetIndex]);

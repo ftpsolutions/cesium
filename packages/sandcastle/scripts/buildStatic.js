@@ -79,6 +79,7 @@ export function createSandcastleConfig({
   const copyPlugin = viteStaticCopy({
     targets: [
       { src: "templates/Sandcastle.(d.ts|js)", dest: "" },
+      { src: "templates/PerfKit.js", dest: "" },
       ...copyExtraFiles,
     ],
   });
@@ -91,10 +92,16 @@ export function createSandcastleConfig({
       "Don't specify the Sandcastle import this is taken care of internally",
     );
   }
+  if (imports["PerfKit"]) {
+    throw new Error(
+      "Don't specify the PerfKit import this is taken care of internally",
+    );
+  }
 
   /** @type {Object<string, string>} */
   const importMap = {
     Sandcastle: "../templates/Sandcastle.js",
+    PerfKit: "../templates/PerfKit.js",
   };
   /** @type {Object<string, string>} */
   const typePaths = {
