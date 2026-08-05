@@ -190,8 +190,20 @@ export function createPerfKit(options = {}) {
       hudParent = viewer.container,
       maxSamples = 200_000,
       autoLog = false,
-      name = "sandcastle",
+      name,
     } = opts;
+    // Auto-derive the download filename from the outer App's page title (set
+    // by usePageTitle to "<demo title> | Sandcastle | CesiumJS"). Falls back
+    // to "sandcastle" if we can't read the parent title (e.g. cross-origin).
+    let resolvedName = name;
+    if (!resolvedName) {
+      try {
+        const parentTitle = window.parent?.document?.title ?? "";
+        resolvedName = parentTitle.split(" | ")[0].trim() || "sandcastle";
+      } catch (_e) {
+        resolvedName = "sandcastle";
+      }
+    }
     const startedAt = new Date().toISOString();
     const percentile = (sorted, p) => {
       const i = Math.ceil(p * sorted.length) - 1;
@@ -393,7 +405,7 @@ export function createPerfKit(options = {}) {
     }, intervalMs);
     async function downloadLogs() {
       const payload = {
-        name,
+        name: resolvedName,
         startedAt,
         finishedAt: new Date().toISOString(),
         userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
@@ -420,7 +432,7 @@ export function createPerfKit(options = {}) {
         blob = new Blob([json], { type: "application/json" });
       }
       const stamp = startedAt.replace(/[:.]/g, "-");
-      const safeName = String(name).replace(/[^a-zA-Z0-9_-]+/g, "_");
+      const safeName = String(resolvedName).replace(/[^a-zA-Z0-9_-]+/g, "_");
       const filename = gzipSupported
         ? `${safeName}-${stamp}.json.gz`
         : `${safeName}-${stamp}.json`;

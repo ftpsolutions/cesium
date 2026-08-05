@@ -138,4 +138,4 @@ viewer.scene.preRender.addEventListener(() => {
 window.viewer = viewer;
 window.model = model;
 
-installFrameTimeLogger(viewer, { name: "perf-dynamic-network" });
+installFrameTimeLogger(viewer);

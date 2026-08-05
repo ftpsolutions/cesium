@@ -166,4 +166,4 @@ viewer.scene.preRender.addEventListener(() => {
 window.viewer = viewer;
 window.model = model;
 
-installFrameTimeLogger(viewer, { name: "perf-moving-network" });
+installFrameTimeLogger(viewer);

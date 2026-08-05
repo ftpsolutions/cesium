@@ -154,4 +154,4 @@ viewer.scene.preRender.addEventListener(() => {
 window.viewer = viewer;
 window.model = model;
 
-installFrameTimeLogger(viewer, { name: "perf-ground-polylines" });
+installFrameTimeLogger(viewer);

@@ -100,4 +100,4 @@ viewer.scene.preRender.addEventListener(() => {
 window.viewer = viewer;
 window.model = model;
 
-installFrameTimeLogger(viewer, { name: "perf-rotating-network" });
+installFrameTimeLogger(viewer);
