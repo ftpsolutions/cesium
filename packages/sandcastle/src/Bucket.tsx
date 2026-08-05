@@ -8,10 +8,10 @@ import {
   MessageToApp,
 } from "./util/IframeBridge";
 
-const INNER_ORIGIN = __INNER_ORIGIN__;
-// This constructs urls like `[__INNER_ORIGIN__]/[pathname]/templates/bucket.html`
-// using location.pathname lets this adapt to deployed locations like CI
-const bucketUrl = `${new URL(`${location.pathname.replace(/[^\/]+.html/, "")}templates/bucket.html`, __INNER_ORIGIN__)}`;
+const INNER_ORIGIN = window.location.origin;
+// This constructs urls like `[origin]/[pathname]/templates/bucket.html` — same
+// origin as the App page (single-origin deploy).
+const bucketUrl = `${new URL(`${location.pathname.replace(/[^\/]+.html/, "")}templates/bucket.html`, INNER_ORIGIN)}`;
 
 export function Bucket({
   code,
@@ -130,7 +130,7 @@ export function Bucket({
         id="bucketFrame"
         src={bucketUrl}
         className="fullFrame"
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts allow-same-origin allow-downloads"
         allowFullScreen
       ></iframe>
     </div>
