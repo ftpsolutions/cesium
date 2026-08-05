@@ -337,7 +337,8 @@ export function createPerfKit(options = {}) {
         `<div>CPU p95: <b data-hud="cpu">—</b> ms</div>` +
         `<div>GPU p95: <b data-hud="gpu">—</b> ms</div>` +
         `<div style="opacity:.7;margin-top:4px;">frames: <span data-hud="frames">0</span></div>` +
-        `<button data-hud="download" style="margin-top:8px;width:100%;padding:4px 8px;font:inherit;cursor:pointer;">⬇ Download logs</button>`;
+        `<button data-hud="download" style="margin-top:8px;width:100%;padding:4px 8px;font:inherit;cursor:pointer;">⬇ Download logs</button>` +
+        `<button data-hud="profile" style="margin-top:6px;width:100%;padding:4px 8px;font:inherit;cursor:pointer;">▶ Profile 10s</button>`;
       container.appendChild(el);
       const q = (s) => el.querySelector(s);
       hudEls = {
@@ -346,8 +347,10 @@ export function createPerfKit(options = {}) {
         gpu: q('[data-hud="gpu"]'),
         frames: q('[data-hud="frames"]'),
         download: q('[data-hud="download"]'),
+        profile: q('[data-hud="profile"]'),
       };
       hudEls.download.addEventListener("click", () => downloadLogs());
+      hudEls.profile.addEventListener("click", () => runProfile(10));
     }
     function unmountHud() {
       if (!hudEls) {
@@ -445,6 +448,121 @@ export function createPerfKit(options = {}) {
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     }
+    let profileInFlight = false;
+    async function runProfile(durationSeconds) {
+      if (profileInFlight) {
+        return;
+      }
+      if (typeof Profiler !== "function") {
+        console.warn(
+          "[frame] JS Self-Profiling API unavailable — need Chrome/Edge served with Document-Policy: js-profiling",
+        );
+        return;
+      }
+      profileInFlight = true;
+      const profileButton = hudEls?.profile;
+      const downloadButton = hudEls?.download;
+      if (downloadButton) {
+        downloadButton.disabled = true;
+      }
+      let profiler;
+      try {
+        profiler = new Profiler({
+          sampleInterval: 10,
+          maxBufferSize: 100000,
+        });
+      } catch (error) {
+        console.warn("[frame] Profiler start failed:", error);
+        profileInFlight = false;
+        if (downloadButton) {
+          downloadButton.disabled = false;
+        }
+        return;
+      }
+      const startMs = performance.now();
+      const startedAtIso = new Date().toISOString();
+      let remaining = durationSeconds;
+      const countdown = setInterval(() => {
+        remaining -= 1;
+        if (profileButton && remaining > 0) {
+          profileButton.textContent = `● Profiling… ${remaining}s`;
+        }
+      }, 1000);
+      if (profileButton) {
+        profileButton.disabled = true;
+        profileButton.textContent = `● Profiling… ${durationSeconds}s`;
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, durationSeconds * 1000),
+      );
+      clearInterval(countdown);
+      let trace = null;
+      try {
+        trace = await profiler.stop();
+      } catch (error) {
+        console.warn("[frame] Profiler stop failed:", error);
+      }
+      const endMs = performance.now();
+      const clipWindow = (values, timestamps) => {
+        const outValues = [];
+        const outTimestamps = [];
+        for (let i = 0; i < timestamps.length; i += 1) {
+          const t = timestamps[i];
+          if (t < startMs) {
+            continue;
+          }
+          if (t > endMs) {
+            break;
+          }
+          outValues.push(values[i]);
+          outTimestamps.push(t);
+        }
+        return { samplesMs: outValues, timestampsMs: outTimestamps };
+      };
+      const payload = {
+        kind: "perf-profile",
+        name: resolvedName,
+        startedAt: startedAtIso,
+        finishedAt: new Date().toISOString(),
+        durationSeconds,
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+        profile: trace,
+        cpu: clipWindow(cpuSamples, cpuTimestampsMs),
+        gpu: clipWindow(gpuSamples, gpuTimestampsMs),
+      };
+      const json = JSON.stringify(payload);
+      const gzipSupported = typeof CompressionStream === "function";
+      let blob;
+      if (gzipSupported) {
+        const stream = new Blob([json])
+          .stream()
+          .pipeThrough(new CompressionStream("gzip"));
+        blob = await new Response(stream).blob();
+      } else {
+        blob = new Blob([json], { type: "application/json" });
+      }
+      const safeName = String(resolvedName).replace(/[^a-zA-Z0-9_-]+/g, "_");
+      const stamp = startedAtIso.replace(/[:.]/g, "-");
+      const filename = gzipSupported
+        ? `${safeName}-profile-${stamp}.json.gz`
+        : `${safeName}-profile-${stamp}.json`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      profileInFlight = false;
+      if (profileButton) {
+        profileButton.disabled = false;
+        profileButton.textContent = "▶ Profile 10s";
+      }
+      if (downloadButton) {
+        downloadButton.disabled = false;
+      }
+    }
     function stop() {
       clearInterval(timerId);
       viewer.scene.preUpdate.removeEventListener(onPreUpdate);
@@ -458,6 +576,7 @@ export function createPerfKit(options = {}) {
     return {
       stop,
       downloadLogs,
+      runProfile,
       mountHud,
       unmountHud,
       getLatest: () => ({

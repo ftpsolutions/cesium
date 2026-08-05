@@ -14,6 +14,11 @@ const baseConfig = {
     // Given the nature of loading and constructing a CesiumJS Viewer on startup HMR can get memory intensive
     // The state of the editor could also be lost when developing if the page refreshes unexpectedly
     hmr: false,
+    // Match the deployed nginx config so `new Profiler(...)` (JS Self-Profiling
+    // API) works in local dev too — used by the perf-kit HUD's Profile button.
+    headers: {
+      "Document-Policy": "js-profiling",
+    },
   },
   define: {
     __COMMIT_SHA__: JSON.stringify(undefined),
