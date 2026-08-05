@@ -1,0 +1,7 @@
+title: Perf 4 — Buffered Coloured Polylines at Scale
+description: "Same rendering + motion + churn as Perf 3, scaled to 5000 assets and 10000 connections. Stress-tests the BufferPolylineCollection path at 10× the asset count and 2× the connection count."
+development: false
+labels:
+  - Showcases
+  - Performance
+thumbnail: thumbnail.jpg
