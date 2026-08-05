@@ -14,14 +14,14 @@ const config = {
         termSimilarity: 0.85, // Fuzzier word matching
       },
     },
-    defaultFilters: { labels: "Showcases" },
+    defaultFilters: {},
     defaultThumbnail: "images/placeholder-thumbnail.jpg",
     metadata: {
       legacyId: undefined,
       labels: [],
       development: false,
     },
-    includeDevelopment: !process.env.PROD,
+    includeDevelopment: false,
     generateEmbeddings: !process.env.SANDCASTLE_NO_EMBEDDINGS,
   },
 };

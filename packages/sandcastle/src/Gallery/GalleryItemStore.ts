@@ -97,6 +97,20 @@ export function useGalleryItemStore({ withoutSearch = false } = {}) {
       return;
     }
 
+    // Skip pagefind when there's nothing to search or filter — otherwise its
+    // empty-query response reorders items by internal ranking instead of the
+    // title-alpha order baked into list.json.
+    const hasSearchTerm = searchTerm !== null && searchTerm.trim() !== "";
+    const hasFilter =
+      searchFilter !== null && Object.keys(searchFilter).length > 0;
+    if (!hasSearchTerm && !hasFilter) {
+      startSearch(() => {
+        setSearchResults(null);
+        setVectorSearchResults(null);
+      });
+      return;
+    }
+
     // Search abort logic handles the issue of race conditions as the user types out a search, which launches multiple async searches
     searchAbortControllerRef.current?.abort();
     const abortController = new AbortController();
