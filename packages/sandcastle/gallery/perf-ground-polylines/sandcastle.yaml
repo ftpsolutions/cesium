@@ -1,0 +1,7 @@
+title: Perf 4 — Ground Polylines
+description: "Same motion + churn as Perf 2 / Perf 3, rendered as GroundPolylinePrimitive (draped on terrain). Geometry is immutable, so any change triggers an async rebuild of the whole primitive; ping-pongs between the old and new one when ready."
+development: false
+labels:
+  - Showcases
+  - Performance
+thumbnail: thumbnail.jpg
