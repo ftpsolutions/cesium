@@ -4,3 +4,4 @@ description: A minimal CesiumJS example that initializes a 3D globe and loads de
 labels:
   - Getting Started
 thumbnail: thumbnail.jpg
+development: true

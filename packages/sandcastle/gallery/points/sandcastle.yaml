@@ -4,3 +4,4 @@ description: Add points to the scene.
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

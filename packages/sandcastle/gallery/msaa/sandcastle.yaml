@@ -4,3 +4,4 @@ description: Add MSAA to the scene.
 labels:
   - Graphics
 thumbnail: thumbnail.jpg
+development: true

@@ -3,3 +3,4 @@ description: Demonstrate edge display modes for 3D Tiles using the EXT_mesh_prim
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true

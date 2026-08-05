@@ -4,3 +4,4 @@ description: Apply vertical exaggeration to terrain to emphasize elevation diffe
 labels:
   - Terrain
 thumbnail: thumbnail.jpg
+development: true

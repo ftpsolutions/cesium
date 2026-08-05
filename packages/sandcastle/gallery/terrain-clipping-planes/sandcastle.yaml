@@ -4,3 +4,4 @@ description: User-defined clipping planes applied to terrain.
 labels:
   - Terrain
 thumbnail: thumbnail.jpg
+development: true

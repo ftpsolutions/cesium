@@ -4,3 +4,4 @@ description: Display polylines on BIM and Photogrammetry 3D Tiles
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true

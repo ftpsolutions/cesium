@@ -4,3 +4,4 @@ description: Draw whole/partial spheres and ellipsoids.
 labels:
   - Geometries
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Point cloud of the city of Montreal, Canada captured in 2015 with a
 labels:
   - ion Assets
 thumbnail: thumbnail.jpg
+development: true

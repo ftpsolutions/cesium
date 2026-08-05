@@ -4,3 +4,4 @@ description: CZML Reference Properties
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

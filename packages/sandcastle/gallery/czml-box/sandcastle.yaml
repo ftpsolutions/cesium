@@ -4,3 +4,4 @@ description: Load and render CZML Box shapes with different material and outline
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

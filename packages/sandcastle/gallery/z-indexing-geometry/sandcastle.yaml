@@ -4,3 +4,4 @@ description: Draw a rectangle or extruded rectangle that conforms to the surface
 labels:
   - Geometries
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Add FXAA to the scene.
 labels:
   - Post Processing
 thumbnail: thumbnail.jpg
+development: true

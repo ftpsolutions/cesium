@@ -4,3 +4,4 @@ description: Use the camera to control the view, and create custom event handler
 labels:
   - Camera
 thumbnail: thumbnail.jpg
+development: true

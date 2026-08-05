@@ -4,3 +4,4 @@ description: Add I3S Building Scene Layer from a service.
 labels:
   - DataSources
 thumbnail: thumbnail.jpg
+development: true

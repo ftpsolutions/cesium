@@ -4,3 +4,4 @@ description: Global imagery assets available from Cesium ion.
 labels:
   - Showcases
 thumbnail: thumbnail.jpg
+development: true

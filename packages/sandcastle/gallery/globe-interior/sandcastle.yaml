@@ -4,3 +4,4 @@ description: View the interior of the globe by enabling translucency on imagery 
 labels:
   - Imagery
 thumbnail: thumbnail.jpg
+development: true

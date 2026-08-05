@@ -4,3 +4,4 @@ description: Interaction examples with 3D Tiles.
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true

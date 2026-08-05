@@ -4,3 +4,4 @@ description: Example styles for a point cloud tileset.
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true

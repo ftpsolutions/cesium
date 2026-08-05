@@ -4,3 +4,4 @@ description: CZML Dynamic Polygon - Intervals and Availability
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

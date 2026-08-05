@@ -4,3 +4,4 @@ description: CZML Polygon
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

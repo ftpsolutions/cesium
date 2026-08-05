@@ -4,3 +4,4 @@ description: Point Cloud Attenuation and Eye Dome Lighting example.
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Add I3S 3D Object Layer from a service.
 labels:
   - DataSources
 thumbnail: thumbnail.jpg
+development: true

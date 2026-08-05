@@ -4,3 +4,4 @@ description: CZML Polyline Volume
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

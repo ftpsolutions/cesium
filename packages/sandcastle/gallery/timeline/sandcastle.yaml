@@ -3,3 +3,4 @@ description: Demonstrates using the Timeline and Animation components to visuali
 labels:
   - Widgets
 thumbnail: thumbnail.jpg
+development: true

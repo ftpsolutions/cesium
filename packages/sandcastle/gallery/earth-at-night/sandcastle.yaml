@@ -4,3 +4,4 @@ description: NASA-generated imagery of the earth at night hosted on Cesium ion. 
 labels:
   - ion Assets
 thumbnail: thumbnail.jpg
+development: true

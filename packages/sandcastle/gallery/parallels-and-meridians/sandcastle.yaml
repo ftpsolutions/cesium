@@ -4,3 +4,4 @@ description: Use polylines to draw parallels and meridians on the globe.
 labels:
   - Geometries
 thumbnail: thumbnail.jpg
+development: true

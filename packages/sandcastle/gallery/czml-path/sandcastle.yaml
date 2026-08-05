@@ -4,3 +4,4 @@ description: CZML Path
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

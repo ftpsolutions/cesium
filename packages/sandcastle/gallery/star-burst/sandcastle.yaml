@@ -4,3 +4,4 @@ description: Expand a cluster of overlapping billboards with a star burst displa
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

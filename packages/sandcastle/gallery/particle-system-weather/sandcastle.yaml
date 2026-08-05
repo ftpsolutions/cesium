@@ -4,3 +4,4 @@ description: Particle systems for rain and snow.
 labels:
   - Graphics
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Add imagery from an ArcGIS MapServer.
 labels:
   - Imagery
 thumbnail: thumbnail.jpg
+development: true

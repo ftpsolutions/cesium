@@ -4,3 +4,4 @@ description: CZML Custom Properties
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

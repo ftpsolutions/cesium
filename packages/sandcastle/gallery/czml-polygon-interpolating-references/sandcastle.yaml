@@ -4,3 +4,4 @@ description: CZML Polygon - Interpolating References
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

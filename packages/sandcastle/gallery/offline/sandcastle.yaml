@@ -4,3 +4,4 @@ description: Demo the minimum set of options needed to remove all external depen
 labels:
   - Getting Started
 thumbnail: thumbnail.jpg
+development: true

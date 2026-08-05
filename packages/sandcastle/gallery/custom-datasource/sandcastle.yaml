@@ -4,3 +4,4 @@ description: A custom DataSource implementation.
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

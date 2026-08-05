@@ -4,3 +4,4 @@ description: Sentinel-2 cloudless by EOX IT Services GmbH (Contains modified Cop
 labels:
   - ion Assets
 thumbnail: thumbnail.jpg
+development: true

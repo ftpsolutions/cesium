@@ -4,3 +4,4 @@ description: Depth of field.
 labels:
   - Post Processing
 thumbnail: thumbnail.jpg
+development: true

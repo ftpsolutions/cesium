@@ -4,3 +4,4 @@ description: Add HTML overlay using canvas coordinates.
 labels:
   - Getting Started
 thumbnail: thumbnail.jpg
+development: true

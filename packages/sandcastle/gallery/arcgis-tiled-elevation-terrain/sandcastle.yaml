@@ -4,3 +4,4 @@ description: Add terrain from an ArcGIS Server.
 labels:
   - Terrain
 thumbnail: thumbnail.jpg
+development: true

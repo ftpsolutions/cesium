@@ -4,3 +4,4 @@ description: Show or hide groups of entities.
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Generate procedural heightmap terrain.
 labels:
   - Terrain
 thumbnail: thumbnail.jpg
+development: true

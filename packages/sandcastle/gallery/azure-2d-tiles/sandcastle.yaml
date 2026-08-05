@@ -4,3 +4,4 @@ description: Global imagery data from Azure Maps.
 labels:
   - Imagery
 thumbnail: thumbnail.jpg
+development: true

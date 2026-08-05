@@ -3,3 +3,4 @@ description: Display a panorama from Google Street View
 labels:
   - Imagery, Showcases
 thumbnail: thumbnail.jpg
+development: true

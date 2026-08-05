@@ -4,3 +4,4 @@ description: Basic CZML billboard and label.
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

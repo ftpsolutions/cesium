@@ -4,3 +4,4 @@ description: High resolution terrain of Pennsylvania curated by PASDA and hosted
 labels:
   - ion Assets
 thumbnail: thumbnail.jpg
+development: true

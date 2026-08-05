@@ -4,3 +4,4 @@ description: Draw polylines with various widths and materials.
 labels:
   - Geometries
 thumbnail: thumbnail.jpg
+development: true

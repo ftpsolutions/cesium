@@ -4,3 +4,4 @@ description: Use localFrameToFixedFrameGenerator for adequate rotation.
 labels:
   - Transformations
 thumbnail: thumbnail.jpg
+development: true

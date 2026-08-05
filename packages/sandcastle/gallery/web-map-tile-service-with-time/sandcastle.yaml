@@ -4,3 +4,4 @@ description: Use Viewer to start building new applications or easily embed Cesiu
 labels:
   - Imagery
 thumbnail: thumbnail.jpg
+development: true

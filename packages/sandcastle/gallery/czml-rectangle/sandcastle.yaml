@@ -4,3 +4,4 @@ description: CZML Rectangle
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

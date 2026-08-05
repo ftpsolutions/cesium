@@ -4,3 +4,4 @@ description: A simple GPX example.
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Post processing effects.
 labels:
   - Post Processing
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Set a custom resolution scale and/or toggle the browser's recommend
 labels:
   - Getting Started
 thumbnail: thumbnail.jpg
+development: true

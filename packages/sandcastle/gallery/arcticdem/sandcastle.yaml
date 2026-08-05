@@ -4,3 +4,4 @@ description: High-resolution arctic terrain from the Arctic DEM project (Release
 labels:
   - ion Assets
 thumbnail: thumbnail.jpg
+development: true

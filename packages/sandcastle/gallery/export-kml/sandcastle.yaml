@@ -5,3 +5,4 @@ labels:
   - DataSources
   - Entities
 thumbnail: thumbnail.jpg
+development: true

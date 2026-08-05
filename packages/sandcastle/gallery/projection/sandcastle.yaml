@@ -4,3 +4,4 @@ description: Change the projection between perspective and orthographic.
 labels:
   - 3D Models
 thumbnail: thumbnail.jpg
+development: true

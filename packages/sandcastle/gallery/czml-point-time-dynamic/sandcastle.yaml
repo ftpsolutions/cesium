@@ -4,3 +4,4 @@ description: CZML Point - Time Dynamic
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

@@ -4,3 +4,4 @@ description: Pick features from an I3S 3D Object Layer.
 labels:
   - DataSources
 thumbnail: thumbnail.jpg
+development: true

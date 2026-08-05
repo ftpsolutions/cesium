@@ -4,3 +4,4 @@ description: Use a CallbackPositionProperty when your data can't be pre-computed
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

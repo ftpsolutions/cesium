@@ -4,3 +4,4 @@ description: Use explicit rendering to improve app performance.
 labels:
   - Performance
 thumbnail: thumbnail.jpg
+development: true

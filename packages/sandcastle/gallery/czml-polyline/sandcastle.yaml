@@ -4,3 +4,4 @@ description: CZML Polyline
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

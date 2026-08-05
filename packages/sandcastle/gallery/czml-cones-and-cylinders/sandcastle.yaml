@@ -4,3 +4,4 @@ description: CZML Cones and Cylinders
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

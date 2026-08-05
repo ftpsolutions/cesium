@@ -4,3 +4,4 @@ description: CZML Model Data URL
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

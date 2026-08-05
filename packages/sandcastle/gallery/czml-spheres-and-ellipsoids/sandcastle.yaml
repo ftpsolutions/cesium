@@ -4,3 +4,4 @@ description: CZML Spheres and Ellipsoids
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

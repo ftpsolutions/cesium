@@ -4,3 +4,4 @@ description: Browse Cesium's built in materials and define new ones using the Fa
 labels:
   - Graphics
 thumbnail: thumbnail.jpg
+development: true

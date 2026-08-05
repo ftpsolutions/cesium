@@ -4,3 +4,4 @@ description: Create imagery layers from multiple sources.
 labels:
   - Imagery
 thumbnail: thumbnail.jpg
+development: true

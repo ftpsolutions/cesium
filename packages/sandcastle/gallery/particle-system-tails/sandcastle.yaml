@@ -4,3 +4,4 @@ description: Particle systems for rocket and comet tails.
 labels:
   - Graphics
 thumbnail: thumbnail.jpg
+development: true

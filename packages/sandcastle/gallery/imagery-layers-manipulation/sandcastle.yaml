@@ -4,3 +4,4 @@ description: Layer imagery from multiple sources, including WMS servers, Bing Ma
 labels:
   - Imagery
 thumbnail: thumbnail.jpg
+development: true

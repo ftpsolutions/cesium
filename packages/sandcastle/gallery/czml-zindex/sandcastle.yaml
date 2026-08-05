@@ -4,3 +4,4 @@ description: CZML Z-indexing
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

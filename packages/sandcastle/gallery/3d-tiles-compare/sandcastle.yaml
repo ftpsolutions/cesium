@@ -4,3 +4,4 @@ description: Compare 3D Tiles tilesets by showing different ones on different si
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true

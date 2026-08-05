@@ -4,3 +4,4 @@ description: CZML Position Definitions
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

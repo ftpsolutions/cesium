@@ -4,3 +4,4 @@ description: Draw lines and polygons on terrain with mouse clicks.
 labels:
   - Terrain
 thumbnail: thumbnail.jpg
+development: true

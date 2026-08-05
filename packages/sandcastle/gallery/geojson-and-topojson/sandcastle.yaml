@@ -4,3 +4,4 @@ description: Load GeoJSON or TopoJSON data and apply custom styling.
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

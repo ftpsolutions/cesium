@@ -4,3 +4,4 @@ description: Use the cesium inspector as a debugging tool for different primitiv
 labels:
   - Entities
 thumbnail: thumbnail.jpg
+development: true

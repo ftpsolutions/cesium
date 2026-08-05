@@ -4,3 +4,4 @@ description: Draw a wall on the globe surface.
 labels:
   - Geometries
 thumbnail: thumbnail.jpg
+development: true

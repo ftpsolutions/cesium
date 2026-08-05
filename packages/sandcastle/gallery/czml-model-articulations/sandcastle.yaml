@@ -4,3 +4,4 @@ description: CZML Model Articulations
 labels:
   - CZML
 thumbnail: thumbnail.jpg
+development: true

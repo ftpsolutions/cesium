@@ -4,3 +4,4 @@ description: Add clipping planes to a mesh 3D Tileset, point cloud 3D Tileset, a
 labels:
   - 3D Tiles
 thumbnail: thumbnail.jpg
+development: true
