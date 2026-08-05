@@ -1,0 +1,11 @@
+.git
+.github/workflows
+Build
+Apps/Sandcastle2
+Apps/CesiumViewer
+node_modules
+packages/*/node_modules
+packages/*/Build
+Documentation
+**/*.log
+.DS_Store
