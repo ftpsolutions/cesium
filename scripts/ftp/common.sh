@@ -2,16 +2,13 @@
 #
 # Shared bits for ../../build.sh and ../../push.sh. Sourced, never executed.
 #
-# The one idea worth holding on to: we publish under our OWN scope
-# (@ftpsolutions/*), not over the top of the real cesium / @cesium/* names, since
-# the registry proxies npmjs and those names are already upstream's. Consumers get
-# the fork through a single npm alias:
+# We publish under our own scope - cesium and @cesium/* are upstream's names. One
+# alias gets a consumer the fork, and the key is what lands in node_modules, so
+# `from "cesium"` resolves unchanged:
 #
 #     "cesium": "npm:@ftpsolutions/cesium@1.144.0-ftp.g6d5d8b1"
 #
-# The alias key is what lands in node_modules, so every `import ... from "cesium"`
-# resolves unchanged, and the umbrella's own aliased dependencies bring our engine
-# and widgets with it. See PUBLISHING.md.
+# See PUBLISHING.md.
 
 say() { printf '\033[36m==>\033[0m %s\n' "$1"; }
 warn() { printf '\033[33mwarning:\033[0m %s\n' "$1" >&2; }
@@ -43,9 +40,8 @@ export NPM_SCOPE NPM_REGISTRY OUT_DIR_REL FTP_OUT FTP_SCRIPTS NODE_IMAGE DRY_RUN
 
 # "<dir>|<upstream name>|<published suffix>", read with
 #     IFS='|' read -r dir upstream suffix <<<"$entry"
-# In dependency order: engine, widgets (needs engine), umbrella (needs both), so
-# push.sh publishing in this order never leaves the umbrella pointing at a version
-# that isn't there yet.
+# Dependency order, so publishing in it never leaves a package pointing at one that
+# isn't up yet.
 FTP_PACKAGES=(
   "packages/engine|@cesium/engine|cesium-engine"
   "packages/widgets|@cesium/widgets|cesium-widgets"
@@ -66,12 +62,10 @@ ftp_commit_sha() {
   printf '%s' "${COMMIT_HASH:-$(git -C "$FTP_REPO" rev-parse HEAD 2>/dev/null || echo '')}"
 }
 
-# <upstream>-ftp.g<short sha>. A semver prerelease, so it can never satisfy a caret
-# range on the real cesium by accident, and the sha says which commit built it.
-# Note it is NOT ordered - npm can't tell which of two fork builds is newer, so
-# consumers pin exactly. The "g" is load bearing: an all-digit prerelease
-# identifier must not have a leading zero, and ~1 short sha in 300 is exactly that.
-# ".dirty" for tracked modifications only; untracked files are normal in CI.
+# <upstream>-ftp.g<short sha>. A prerelease, so it can't satisfy a caret range on the
+# real cesium. NOT ordered - npm can't tell which fork build is newer, so consumers
+# pin exactly. The "g" is load bearing: an all-digit prerelease identifier can't have
+# a leading zero, and ~1 short sha in 300 is one. ".dirty" ignores untracked files.
 ftp_fork_version() {
   if [ -n "${FORK_VERSION:-}" ]; then
     printf '%s' "$FORK_VERSION"
@@ -98,13 +92,12 @@ ftp_assert_node() {
     die "needs node >= 22, you're on $(node -v) (DOCKER=1 to use $NODE_IMAGE)"
 }
 
-# Re-exec the caller inside NODE_IMAGE with the repo bind-mounted. TeamCity agents
-# have docker but no guaranteed node 22.
+# Re-exec inside NODE_IMAGE with the repo bind-mounted: TeamCity agents have docker
+# but no guaranteed node 22.
 #
-# --user keeps what we write owned by the caller rather than root, so HOME has to
-# move somewhere writable. GIT_CONFIG_* marks /src safe without writing a
-# gitconfig: the uid inside the container doesn't match the bind mount's owner on
-# Docker Desktop, and git refuses to read a repo it thinks belongs to someone else.
+# --user keeps output owned by the caller, so HOME moves somewhere writable.
+# GIT_CONFIG_* marks /src safe without writing a gitconfig - on Docker Desktop the
+# container uid doesn't own the bind mount and git refuses to read it.
 ftp_reexec_in_docker() {
   local script_name="$1" var
   shift

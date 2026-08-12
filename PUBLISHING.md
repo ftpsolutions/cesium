@@ -28,10 +28,12 @@ same trap the front-end's `bun run cesium:link` exists to avoid locally.
 
 ### Why our own scope
 
-The registry is a Verdaccio that proxies npmjs, so it already serves the real
-`cesium` and `@cesium/*`. Publishing over those names would mean our versions and
-upstream's share a package document, where a mistaken `latest` becomes everyone's
-problem. Under `@ftpsolutions/*` there's nothing to collide with.
+`cesium` and `@cesium/*` are upstream's names, not ours to publish under. Ours go
+under our own scope, where nothing can collide with them.
+
+The registry hosts what we publish and nothing else - it is not an npmjs mirror - so
+a consumer maps only this scope and leaves npmjs as the default. Point the default
+here and the install dies looking for ordinary public packages.
 
 Consumers get the fork through an npm alias, so **no import ever changes**, and
 it is **one line** - three packages published, one declared:

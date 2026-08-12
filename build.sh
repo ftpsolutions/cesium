@@ -13,11 +13,11 @@
 #   @ftpsolutions/cesium-widgets   packages/widgets
 #   @ftpsolutions/cesium           the umbrella
 #
-# All three, not one: the umbrella's Source/Cesium.js is 1344 re-export lines and
-# almost no code, so shipping it alone pairs our front half with upstream's engine.
+# All three, not one: the umbrella is re-exports and almost no code, so alone it
+# pairs our front half with upstream's engine.
 #
-# The version is <upstream>-ftp.g<short sha>. Set COMMIT_HASH to name the commit,
-# or FORK_VERSION to override it outright. Full notes in PUBLISHING.md.
+# Version is <upstream>-ftp.g<short sha>; COMMIT_HASH names the commit, FORK_VERSION
+# overrides it. See PUBLISHING.md.
 #
 set -euo pipefail
 
@@ -35,8 +35,7 @@ restore_manifests() {
   done
 }
 
-# Everything from here edits the three package.json files in place, so back them
-# up first and put them back on any exit.
+# What follows edits the three package.json files in place - back up, restore on exit.
 begin_manifest_edits() {
   local entry dir manifest
   for entry in "${FTP_PACKAGES[@]}"; do
@@ -50,9 +49,8 @@ begin_manifest_edits() {
   done
 }
 
-# --ignore-scripts: the root `prepare` ends in `playwright install --with-deps`,
-# which wants to apt-get half a browser. Nothing the build needs comes from a
-# lifecycle script.
+# --ignore-scripts: the root `prepare` ends in `playwright install --with-deps`. The
+# build needs nothing from a lifecycle script.
 install_dependencies() {
   if [ "$SKIP_INSTALL" = "1" ]; then
     [ -x "$FTP_REPO/node_modules/.bin/gulp" ] || die "--no-install but node_modules isn't installed"
@@ -62,9 +60,8 @@ install_dependencies() {
   npm install --ignore-scripts --no-audit --no-fund
 }
 
-# build-release, not plain build: the front-end extracts its worker blob from the
-# MINIFIED Build/Cesium/Cesium.js, which only the release build emits. build-ts
-# produces the .d.ts files `bun run tsc` needs.
+# build-release, not build: the front-end greps its worker blob out of the MINIFIED
+# Build/Cesium/Cesium.js. build-ts gives us the .d.ts files.
 build_fork() {
   say "stamping $FORK_VERSION and building - takes a few minutes"
   node "$FTP_SCRIPTS/manifest.js" stamp "$FORK_VERSION" "${MANIFESTS[@]}"
@@ -72,8 +69,8 @@ build_fork() {
   npm run build-ts
 }
 
-# One list, checked once, on the tree npm pack is about to read.
-# Kept in step with the front-end's own cesium link script.
+# Checked on the tree npm pack is about to read. Keep in step with the front-end's
+# cesium_fork.sh.
 assert_build_artifacts() {
   local rel required=(
     index.cjs
@@ -99,16 +96,13 @@ assert_build_artifacts() {
   grep -q 'globalThis\.CESIUM_WORKERS=atob("' "$FTP_REPO/Build/Cesium/Cesium.js" ||
     die "no CESIUM_WORKERS blob in Build/Cesium/Cesium.js - it looks unminified"
 
-  # Proof the stamp reached the generated code. A tarball whose baked-in version
-  # disagrees with its manifest is something you notice from a browser weeks later.
+  # The stamp has to reach the generated code, or a browser reports the wrong build.
   grep -q "CESIUM_VERSION = \"$FORK_VERSION\"" "$FTP_REPO/packages/engine/index.js" ||
     die "packages/engine/index.js wasn't built at $FORK_VERSION"
 }
 
-# Rename in the tree, then pack: npm works out the file list itself (from "files"
-# for the workspaces, .npmignore for the root) and writes correctly-named tarballs
-# straight out. Packing each directory rather than using --workspace also keeps
-# packages/sandcastle, 15MB of demo app, out of it.
+# Rename in the tree, then pack - npm works out the file list and tarball names
+# itself. Per-directory rather than --workspace, which would drag in sandcastle.
 pack() {
   rm -rf "$FTP_OUT"
   mkdir -p "$FTP_OUT"
@@ -125,9 +119,8 @@ pack() {
   printf '%s\n' "$FORK_VERSION" >"$FTP_OUT/version.txt"
 }
 
-# Load the umbrella the way node would. Build/Cesium and Build/CesiumUnminified are
-# self-contained, so this needs no node_modules and no network - it just proves
-# they aren't truncated. Both NODE_ENVs because index.cjs picks between them.
+# Load the bundles the way node would - self-contained, so no node_modules needed;
+# proves they aren't truncated. Both NODE_ENVs, since index.cjs picks between them.
 verify() {
   local dir node_env
   dir="$(mktemp -d)"
@@ -170,8 +163,7 @@ main() {
   UPSTREAM_VERSION="$(ftp_upstream_version)"
   FORK_VERSION="$(ftp_fork_version)"
   FTP_COMMIT="$(ftp_commit_sha)"
-  # TeamCity passes BRANCH; agent checkouts are usually on a detached HEAD, so the
-  # git fallback is only any use locally.
+  # TeamCity passes BRANCH - agent checkouts are detached, so the fallback is local-only.
   FTP_BRANCH="${BRANCH:-$(git -C "$FTP_REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')}"
   FTP_BRANCH="${FTP_BRANCH#refs/heads/}"
   export FORK_VERSION FTP_COMMIT FTP_BRANCH

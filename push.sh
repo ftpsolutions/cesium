@@ -6,16 +6,12 @@
 #   NPM_TOKEN=... ./push.sh              # publish
 #   DRY_RUN=1 NPM_TOKEN=... ./push.sh    # everything except the upload
 #
-# Auth is NPM_TOKEN and only NPM_TOKEN. Measured against Verdaccio: basic auth
-# can't publish at all and npm whoami decodes it locally, so it reports a wrong
-# password as valid; and a password can't be traded for a token, because that
-# endpoint only returns one for a user it has just created and 409s for one that
-# already exists. Get a token with
+# NPM_TOKEN only - basic auth can't publish, and npm whoami validates it locally so
+# a wrong password looks fine. Get one with
 #   npm login --registry=<registry> --auth-type=legacy
-# and copy the _authToken line out of ~/.npmrc. They're opaque and don't expire.
 #
-# ALLOW_EXISTING=1 turns "already published" into a warning. CI sets it, because
-# the version is the commit sha and re-running a build should be a no-op.
+# ALLOW_EXISTING=1 turns "already published" into a warning; CI sets it, since the
+# version is the commit sha and a re-run should be a no-op.
 #
 set -euo pipefail
 
@@ -42,8 +38,7 @@ authenticate() {
   } >"$WORK/npmrc"
   chmod 600 "$WORK/npmrc"
 
-  # A real round trip - with a token, npm whoami asks the server. Fail here rather
-  # than half way through the three packages.
+  # A token makes whoami a real round trip - fail here, not mid-publish.
   local whoami
   whoami="$(npm whoami --userconfig "$WORK/npmrc" --registry "$NPM_REGISTRY" 2>/dev/null || echo '')"
   [ -n "$whoami" ] || die "the registry rejected NPM_TOKEN - expired, or not for $NPM_REGISTRY?"
@@ -67,26 +62,22 @@ publish_tarball() {
   fi
   printf '%s\n' "$output" >&2
 
-  # here-strings, not pipes: grep -q stops early and pipefail reports the writer's
-  # SIGPIPE as a failure.
-  # Verdaccio's wording is "E409 ... this package is already present"; npmjs says
-  # EPUBLISHCONFLICT. Match both.
+  # Here-strings, not pipes: grep -q exits early and pipefail then reports SIGPIPE.
+  # Verdaccio says E409/"already present", npmjs says EPUBLISHCONFLICT.
   if [ "$ALLOW_EXISTING" = "1" ] &&
     grep -qiE 'E409|EPUBLISHCONFLICT|already present|cannot publish over' <<<"$output"; then
     warn "$name is already published - carrying on (ALLOW_EXISTING=1)"
     return
   fi
-  # Worth naming: the umbrella is ~23MB and goes up as ~32MB of base64. Verdaccio
-  # defaults to max_body_size 10mb and nginx to 1MB, and --dry-run never uploads,
-  # so nothing catches this earlier.
+  # The umbrella is ~23MB, ~32MB base64'd; Verdaccio defaults to 10mb and nginx to
+  # 1MB. --dry-run never uploads, so nothing catches it earlier.
   if grep -qiE 'E413|too large' <<<"$output"; then
     die "$name was rejected as too large - raise max_body_size on the registry and the body limit on its ingress"
   fi
   die "failed to publish $name"
 }
 
-# Engine, widgets, then the umbrella, whose dependencies are aliases at this exact
-# version - so it never points at something the registry hasn't got yet.
+# Umbrella last: its deps are aliases at this exact version.
 publish_all() {
   local entry suffix
   for entry in "${FTP_PACKAGES[@]}"; do
@@ -95,22 +86,15 @@ publish_all() {
   done
 }
 
-# Install the way a consumer does - one alias, nothing else - and check the engine
-# arrived with it. That hoisting is the whole reason a consumer pins one version
-# instead of three, and this is the first point where the aliases, the renames and
-# the registry all have to agree.
+# One alias, nothing else, and check the engine came with it - the hoisting is why a
+# consumer pins one version instead of three.
 smoke_test() {
   say "installing it the way a consumer would"
   local dir="$WORK/smoke"
   mkdir -p "$dir"
 
-  # A consumer's .npmrc maps ONLY our scope at the private registry and leaves npmjs
-  # as the default - that's what PUBLISHING.md tells them to write, so it's what this
-  # has to exercise. The publish npmrc can't be reused: publishing needs "registry="
-  # pointing at the private registry, which sends the umbrella's own dependencies
-  # there too. protobufjs 404s on our Verdaccio - lodash doesn't, so it proxies in
-  # general and this is something about that one package - and the install died on a
-  # dependency that has nothing to do with us.
+  # Scope only, npmjs as default - what a consumer writes. The publish npmrc sets
+  # "registry=", which sends the umbrella's public deps here too, where they aren't.
   local consumer_npmrc="$WORK/npmrc-consumer"
   {
     echo "$NPM_SCOPE:registry=$NPM_REGISTRY"
@@ -118,11 +102,9 @@ smoke_test() {
   } >"$consumer_npmrc"
   chmod 600 "$consumer_npmrc"
 
-  # Outside the repo: inside it, npm walks up and installs into the fork.
-  #
-  # Each step checks itself, because `set -e` does NOT apply inside a subshell used
-  # as the left side of `||`: a failed install ran the checks anyway and reported
-  # the hoisting failure it had caused, which is the wrong problem to go looking at.
+  # Outside the repo: inside it, npm walks up and installs into the fork. Each step
+  # checks itself - `set -e` doesn't apply in a subshell on the left of `||`, so a
+  # failed install would otherwise run the checks and blame hoisting.
   (
     cd "$dir"
     npm init -y >/dev/null
