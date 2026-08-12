@@ -30,7 +30,7 @@ import BlendOption from "./BlendOption.js";
 
 /**
  * TODO(PR#13211): Need 'keyof' syntax to avoid duplicating attribute names.
- * @typedef {'positionHigh' | 'positionLow' | 'prevPositionHigh' | 'prevPositionLow' | 'nextPositionHigh' | 'nextPositionLow' | 'pickColor' | 'showColorWidthAndTexCoord' | 'alpha'} BufferPolylineAttribute
+ * @typedef {'positionHigh' | 'positionLow' | 'prevPositionHigh' | 'prevPositionLow' | 'nextPositionHigh' | 'nextPositionLow' | 'pickColor' | 'showColorWidthAndTexCoord' | 'alpha' | 'dashParams'} BufferPolylineAttribute
  * @ignore
  */
 
@@ -49,6 +49,7 @@ const BufferPolylineAttributeLocationsFloat64 = {
   pickColor: 6,
   showColorWidthAndTexCoord: 7,
   alpha: 8,
+  dashParams: 9,
 };
 
 /**
@@ -63,6 +64,7 @@ const BufferPolylineAttributeLocations = {
   pickColor: 3,
   showColorWidthAndTexCoord: 4,
   alpha: 5,
+  dashParams: 6,
 };
 
 /**
@@ -162,6 +164,8 @@ function renderBufferPolylineCollection(collection, frameState, renderContext) {
       pickColor: new Uint8Array(vertexCountMax * 4),
       showColorWidthAndTexCoord: new Float32Array(vertexCountMax * 4),
       alpha: new Uint8Array(vertexCountMax),
+      // (encodedGapColorRGB8, gapAlpha, dashRepeat + dashOffset, dashPattern)
+      dashParams: new Float32Array(vertexCountMax * 4),
     };
   }
 
@@ -175,6 +179,7 @@ function renderBufferPolylineCollection(collection, frameState, renderContext) {
       pickColor: pickColorArray,
       showColorWidthAndTexCoord: showColorWidthAndTexCoordArray,
       alpha: alphaArray,
+      dashParams: dashParamsArray,
 
       // 8-32 bit.
       position,
@@ -200,6 +205,14 @@ function renderBufferPolylineCollection(collection, frameState, renderContext) {
       polyline.getMaterial(material);
       const encodedColor = AttributeCompression.encodeRGB8(material.color);
       const colorAlpha = material.color.alpha;
+      const encodedGapColor = AttributeCompression.encodeRGB8(
+        material.gapColor,
+      );
+      const gapAlpha = material.gapColor.alpha;
+      // Pack the integer cycle count and the [0,1) phase offset into one float;
+      // the shader splits them with floor()/fract().
+      const dashRepeatAndOffset = material.dashRepeat + material.dashOffset;
+      const dashPattern = material.dashPattern;
       Color.fromRgba(polyline._pickId, pickColor);
       const show = polyline.show;
 
@@ -310,6 +323,11 @@ function renderBufferPolylineCollection(collection, frameState, renderContext) {
           showColorWidthAndTexCoordArray[vOffset * 4 + 3] = j / (jl - 1);
 
           alphaArray[vOffset] = colorAlpha * 255.0;
+
+          dashParamsArray[vOffset * 4] = encodedGapColor;
+          dashParamsArray[vOffset * 4 + 1] = gapAlpha;
+          dashParamsArray[vOffset * 4 + 2] = dashRepeatAndOffset;
+          dashParamsArray[vOffset * 4 + 3] = dashPattern;
 
           vOffset++;
         }
@@ -458,6 +476,16 @@ function renderBufferPolylineCollection(collection, frameState, renderContext) {
           componentsPerAttribute: 1,
           vertexBuffer: Buffer.createVertexBuffer({
             typedArray: attributeArrays.alpha,
+            context,
+            usage: BufferUsage.STATIC_DRAW,
+          }),
+        },
+        {
+          index: attributeLocations.dashParams,
+          componentDatatype: ComponentDatatype.FLOAT,
+          componentsPerAttribute: 4,
+          vertexBuffer: Buffer.createVertexBuffer({
+            typedArray: attributeArrays.dashParams,
             context,
             usage: BufferUsage.STATIC_DRAW,
           }),
