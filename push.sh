@@ -104,16 +104,36 @@ smoke_test() {
   local dir="$WORK/smoke"
   mkdir -p "$dir"
 
+  # A consumer's .npmrc maps ONLY our scope at the private registry and leaves npmjs
+  # as the default - that's what PUBLISHING.md tells them to write, so it's what this
+  # has to exercise. The publish npmrc can't be reused: publishing needs "registry="
+  # pointing at the private registry, which sends the umbrella's own dependencies
+  # there too. protobufjs 404s on our Verdaccio - lodash doesn't, so it proxies in
+  # general and this is something about that one package - and the install died on a
+  # dependency that has nothing to do with us.
+  local consumer_npmrc="$WORK/npmrc-consumer"
+  {
+    echo "$NPM_SCOPE:registry=$NPM_REGISTRY"
+    echo "//${NPM_REGISTRY#http*://}/:_authToken=$NPM_TOKEN"
+  } >"$consumer_npmrc"
+  chmod 600 "$consumer_npmrc"
+
   # Outside the repo: inside it, npm walks up and installs into the fork.
+  #
+  # Each step checks itself, because `set -e` does NOT apply inside a subshell used
+  # as the left side of `||`: a failed install ran the checks anyway and reported
+  # the hoisting failure it had caused, which is the wrong problem to go looking at.
   (
     cd "$dir"
     npm init -y >/dev/null
-    npm install --userconfig "$WORK/npmrc" --registry "$NPM_REGISTRY" \
+    npm install --userconfig "$consumer_npmrc" \
       --no-audit --no-fund --loglevel error \
-      "cesium@npm:$(ftp_published_name cesium)@$FORK_VERSION"
+      "cesium@npm:$(ftp_published_name cesium)@$FORK_VERSION" ||
+      die "installing $(ftp_published_name cesium)@$FORK_VERSION failed - see npm's output above"
     [ "$(node -p 'require("@cesium/engine/package.json").name')" = "$(ftp_published_name cesium-engine)" ] ||
       die "@cesium/engine did not resolve to our fork - the umbrella's alias isn't hoisting"
-    NODE_ENV=production node -e 'require("cesium")'
+    NODE_ENV=production node -e 'require("cesium")' ||
+      die "the published umbrella doesn't load under NODE_ENV=production"
   ) || die "the published packages do not install and load"
 }
 
