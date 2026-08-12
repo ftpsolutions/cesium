@@ -35,4 +35,10 @@
 /Tools
 /web.config
 
+# FTP Solutions: our publishing tooling and its output are for CI, not consumers
+/build.sh
+/push.sh
+/build_output
+/PUBLISHING.md
+
 Thumbs.db

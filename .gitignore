@@ -1,5 +1,9 @@
 /.metadata
 /Build
+# FTP Solutions: ./build.sh output (npm tarballs for our private registry), plus
+# the manifest backups it restores on exit - only left behind if it's killed hard
+/build_output
+*.ftp_orig
 /Cesium-*.zip
 /cesium-*.tgz
 /packages/**/*.tgz
