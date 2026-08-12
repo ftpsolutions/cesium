@@ -13,12 +13,17 @@ in vec3 nextPosition;
 in vec4 pickColor;
 in vec4 showColorWidthAndTexCoord;
 in float alpha;
+in vec4 dashParams; // (encodedGapColorRGB8, gapAlpha, dashRepeat + dashOffset, dashPattern)
 
 out vec4 v_pickColor;
 out vec4 v_color;
 out vec2  v_st;
 out float v_width;
 out float v_polylineAngle;
+out vec4 v_gapColor;
+out float v_along;
+out float v_dashRepeat;
+out float v_dashPattern;
 
 void main()
 {
@@ -60,4 +65,10 @@ void main()
 
     v_width = width;
     v_polylineAngle = polylineAngle;
+
+    v_gapColor = czm_decodeRGB8(dashParams.x);
+    v_gapColor.a = dashParams.y;
+    v_along = texCoord;
+    v_dashRepeat = dashParams.z; // integer part = cycles, fractional part = phase offset
+    v_dashPattern = dashParams.w;
 }
