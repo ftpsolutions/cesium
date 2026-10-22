@@ -148,6 +148,16 @@ function Globe(ellipsoid) {
   this.preloadSiblings = false;
 
   /**
+   * Gets or sets a value indicating whether a frame may reuse the previous frame's tile selection
+   * instead of traversing the quadtree again. It is only reused in 3D, when nothing that affects
+   * which tiles are selected has changed and the previous selection left nothing to load. This
+   * saves most of the globe's per-frame CPU time while the camera is still.
+   * @type {boolean}
+   * @default true
+   */
+  this.reuseUnchangedTileSelection = true;
+
+  /**
    * The color to use to highlight terrain fill tiles. If undefined, fill tiles are not
    * highlighted at all. The alpha value is used to alpha blend with the tile's
    * actual color. Because terrain fill tiles do not represent the actual terrain surface,
@@ -1039,6 +1049,7 @@ Globe.prototype.beginFrame = function (frameState) {
     surface.loadingDescendantLimit = this.loadingDescendantLimit;
     surface.preloadAncestors = this.preloadAncestors;
     surface.preloadSiblings = this.preloadSiblings;
+    surface.reuseUnchangedTileSelection = this.reuseUnchangedTileSelection;
 
     tileProvider.terrainProvider = this.terrainProvider;
     tileProvider.lightingFadeOutDistance = this.lightingFadeOutDistance;

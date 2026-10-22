@@ -151,6 +151,19 @@ function QuadtreePrimitive(options) {
    */
   this.preloadSiblings = false;
 
+  /**
+   * Gets or sets a value indicating whether a frame may reuse the previous frame's tile selection
+   * instead of traversing the quadtree again. It is only reused in 3D, when nothing that affects
+   * which tiles are selected has changed and the previous selection left nothing to load.
+   * @type {boolean}
+   * @default true
+   */
+  this.reuseUnchangedTileSelection = true;
+
+  this._tileSelectionInputs = new TileSelectionInputs();
+  this._tileSelectionReusable = false;
+  this._reusingTileSelection = false;
+
   this._occluders = new QuadtreeOccluders({
     ellipsoid: ellipsoid,
   });
@@ -202,7 +215,19 @@ QuadtreePrimitive.prototype.invalidateAllTiles = function () {
   this._tilesInvalidated = true;
 };
 
+/**
+ * Prevents the next frame from reusing the current tile selection. Tile providers call this when
+ * something that affects tile selection changes outside the inputs the quadtree compares itself.
+ *
+ * @private
+ */
+QuadtreePrimitive.prototype.invalidateTileSelection = function () {
+  this._tileSelectionReusable = false;
+};
+
 function invalidateAllTiles(primitive) {
+  primitive._tileSelectionReusable = false;
+
   // Clear the replacement queue
   const replacementQueue = primitive._tileReplacementQueue;
   replacementQueue.head = undefined;
@@ -343,7 +368,10 @@ QuadtreePrimitive.prototype.beginFrame = function (frameState) {
 
   clearTileLoadQueue(this);
 
-  if (this._debug.suspendLodUpdate) {
+  this._reusingTileSelection =
+    !this._debug.suspendLodUpdate && canReuseTileSelection(this, frameState);
+
+  if (this._debug.suspendLodUpdate || this._reusingTileSelection) {
     return;
   }
 
@@ -503,9 +531,11 @@ let rootTraversalDetails = [];
 
 function selectTilesForRendering(primitive, frameState) {
   const debug = primitive._debug;
-  if (debug.suspendLodUpdate) {
+  if (debug.suspendLodUpdate || primitive._reusingTileSelection) {
     return;
   }
+
+  primitive._tileSelectionReusable = false;
 
   // Clear the render list.
   const tilesToRender = primitive._tilesToRender;
@@ -604,7 +634,127 @@ function selectTilesForRendering(primitive, frameState) {
   }
 
   primitive._lastSelectionFrameNumber = frameState.frameNumber;
+
+  // The next frame can reuse this selection only if it left nothing to load: a tile waiting on a
+  // load would change the selection once it arrives.
+  primitive._tileSelectionInputs.record(primitive, frameState);
+  primitive._tileSelectionReusable =
+    primitive._tileLoadQueueHigh.length === 0 &&
+    primitive._tileLoadQueueMedium.length === 0 &&
+    primitive._tileLoadQueueLow.length === 0 &&
+    debug.tilesWaitingForChildren === 0;
 }
+
+function canReuseTileSelection(primitive, frameState) {
+  if (
+    !primitive.reuseUnchangedTileSelection ||
+    !primitive._tileSelectionReusable ||
+    // 2D and Columbus view can render the quadtree more than once a frame.
+    frameState.mode !== SceneMode.SCENE3D ||
+    primitive._addHeightCallbacks.length > 0 ||
+    primitive._removeHeightCallbacks.length > 0 ||
+    primitive._tileToUpdateHeights.length > 0
+  ) {
+    return false;
+  }
+
+  const tileProvider = primitive._tileProvider;
+  if (
+    defined(tileProvider.canReuseTileSelection) &&
+    !tileProvider.canReuseTileSelection(frameState)
+  ) {
+    return false;
+  }
+
+  return primitive._tileSelectionInputs.equals(primitive, frameState);
+}
+
+/**
+ * Everything that tile selection reads from the frame state, the quadtree and its tile provider,
+ * apart from the tiles themselves. Tile state only changes through the load queue, which a reused
+ * selection never has entries in, or through the tile provider, which calls
+ * {@link QuadtreePrimitive#invalidateTileSelection}.
+ *
+ * @private
+ */
+function TileSelectionInputs() {
+  this.viewMatrix = new Matrix4();
+  this.projectionMatrix = new Matrix4();
+  this.drawingBufferWidth = undefined;
+  this.drawingBufferHeight = undefined;
+  this.pixelRatio = undefined;
+  this.fogEnabled = undefined;
+  this.fogDensity = undefined;
+  this.fogSse = undefined;
+  this.cameraUnderground = undefined;
+  this.globeTranslucent = undefined;
+  this.verticalExaggeration = undefined;
+  this.verticalExaggerationRelativeHeight = undefined;
+  this.maximumScreenSpaceError = undefined;
+  this.loadingDescendantLimit = undefined;
+  this.preloadAncestors = undefined;
+  this.preloadSiblings = undefined;
+  this.backFaceCulling = undefined;
+  this.cartographicLimitRectangle = new Rectangle();
+}
+
+TileSelectionInputs.prototype.record = function (primitive, frameState) {
+  const camera = frameState.camera;
+  const context = frameState.context;
+  const tileProvider = primitive._tileProvider;
+  Matrix4.clone(camera.viewMatrix, this.viewMatrix);
+  Matrix4.clone(camera.frustum.projectionMatrix, this.projectionMatrix);
+  this.drawingBufferWidth = context.drawingBufferWidth;
+  this.drawingBufferHeight = context.drawingBufferHeight;
+  this.pixelRatio = frameState.pixelRatio;
+  this.fogEnabled = frameState.fog.enabled;
+  this.fogDensity = frameState.fog.density;
+  this.fogSse = frameState.fog.sse;
+  this.cameraUnderground = frameState.cameraUnderground;
+  this.globeTranslucent = frameState.globeTranslucencyState.translucent;
+  this.verticalExaggeration = frameState.verticalExaggeration;
+  this.verticalExaggerationRelativeHeight =
+    frameState.verticalExaggerationRelativeHeight;
+  this.maximumScreenSpaceError = primitive.maximumScreenSpaceError;
+  this.loadingDescendantLimit = primitive.loadingDescendantLimit;
+  this.preloadAncestors = primitive.preloadAncestors;
+  this.preloadSiblings = primitive.preloadSiblings;
+  this.backFaceCulling = tileProvider.backFaceCulling;
+  this.cartographicLimitRectangle = Rectangle.clone(
+    tileProvider.cartographicLimitRectangle,
+    this.cartographicLimitRectangle,
+  );
+};
+
+TileSelectionInputs.prototype.equals = function (primitive, frameState) {
+  const camera = frameState.camera;
+  const context = frameState.context;
+  const tileProvider = primitive._tileProvider;
+  return (
+    Matrix4.equals(camera.viewMatrix, this.viewMatrix) &&
+    Matrix4.equals(camera.frustum.projectionMatrix, this.projectionMatrix) &&
+    context.drawingBufferWidth === this.drawingBufferWidth &&
+    context.drawingBufferHeight === this.drawingBufferHeight &&
+    frameState.pixelRatio === this.pixelRatio &&
+    frameState.fog.enabled === this.fogEnabled &&
+    frameState.fog.density === this.fogDensity &&
+    frameState.fog.sse === this.fogSse &&
+    frameState.cameraUnderground === this.cameraUnderground &&
+    frameState.globeTranslucencyState.translucent === this.globeTranslucent &&
+    frameState.verticalExaggeration === this.verticalExaggeration &&
+    frameState.verticalExaggerationRelativeHeight ===
+      this.verticalExaggerationRelativeHeight &&
+    primitive.maximumScreenSpaceError === this.maximumScreenSpaceError &&
+    primitive.loadingDescendantLimit === this.loadingDescendantLimit &&
+    primitive.preloadAncestors === this.preloadAncestors &&
+    primitive.preloadSiblings === this.preloadSiblings &&
+    tileProvider.backFaceCulling === this.backFaceCulling &&
+    Rectangle.equals(
+      tileProvider.cartographicLimitRectangle,
+      this.cartographicLimitRectangle,
+    )
+  );
+};
 
 function queueTileLoad(primitive, queue, tile, frameState) {
   if (!tile.needsLoading) {

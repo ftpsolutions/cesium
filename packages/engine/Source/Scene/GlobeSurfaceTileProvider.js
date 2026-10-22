@@ -533,6 +533,8 @@ class GlobeSurfaceTileProvider {
     this._oldVerticalExaggerationRelativeHeight = exaggerationRelativeHeight;
 
     if (exaggerationChanged) {
+      // Tile bounding volumes change after this frame's selection, so the next frame selects again.
+      quadtree.invalidateTileSelection();
       quadtree.forEachLoadedTile(
         /** @param {QuadtreeTile} tile */
         function (tile) {
@@ -845,6 +847,22 @@ class GlobeSurfaceTileProvider {
     }
 
     return visibility;
+  }
+
+  /**
+   * Determines whether the quadtree may reuse its previous tile selection. Clipping planes and
+   * polygons can change without the provider being told, so a globe clipped by either always selects.
+   *
+   * @returns {boolean} False if the previous tile selection may be out of date.
+   * @private
+   */
+  canReuseTileSelection() {
+    const clippingPlanes = this._clippingPlanes;
+    const clippingPolygons = this._clippingPolygons;
+    return (
+      !(defined(clippingPlanes) && clippingPlanes.enabled) &&
+      !(defined(clippingPolygons) && clippingPolygons.enabled)
+    );
   }
 
   /**
@@ -1243,6 +1261,7 @@ class GlobeSurfaceTileProvider {
             tile.state = QuadtreeTileLoadState.LOADING;
           }
         });
+        that._quadtree.invalidateTileSelection();
       };
 
       if (layer.ready) {
@@ -1269,6 +1288,7 @@ class GlobeSurfaceTileProvider {
       });
 
       this._layerOrderChanged = true;
+      this._quadtree.invalidateTileSelection();
       tileImageryUpdatedEvent.raiseEvent();
     }
   }
@@ -1308,11 +1328,13 @@ class GlobeSurfaceTileProvider {
       layer.imageryProvider._reload = undefined;
     }
 
+    this._quadtree.invalidateTileSelection();
     this._imageryLayersUpdatedEvent.raiseEvent();
   }
 
   _onLayerMoved(layer, newIndex, oldIndex) {
     this._layerOrderChanged = true;
+    this._quadtree.invalidateTileSelection();
     this._imageryLayersUpdatedEvent.raiseEvent();
   }
 
