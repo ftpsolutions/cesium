@@ -544,6 +544,8 @@ describe("Scene/QuadtreePrimitive", function () {
       });
 
       quadtree.preloadAncestors = false;
+      // Changes what the culling volume reports without moving the camera.
+      quadtree.reuseUnchangedTileSelection = false;
 
       const visibleTile = rootTiles[0].southwestChild.northeastChild;
       const notVisibleTile = rootTiles[0].southwestChild.northwestChild;
@@ -603,6 +605,167 @@ describe("Scene/QuadtreePrimitive", function () {
         expect(quadtree._tilesToRender).toContain(notVisibleTile);
         expect(notVisibleTile.data.fill).toBeDefined();
         expect(notVisibleTile.data.vertexArray).toBeUndefined();
+      });
+    });
+
+    describe("reuseUnchangedTileSelection", function () {
+      function makeAvailable(tile) {
+        mockTerrain
+          .willBeAvailable(tile)
+          .requestTileGeometryWillSucceed(tile)
+          .createMeshWillSucceed(tile);
+      }
+
+      function isLoading() {
+        return (
+          quadtree._tileLoadQueueHigh.length > 0 ||
+          quadtree._tileLoadQueueMedium.length > 0 ||
+          quadtree._tileLoadQueueLow.length > 0 ||
+          quadtree._debug.tilesWaitingForChildren > 0
+        );
+      }
+
+      // Loads everything through level 2 and processes frames until a selection leaves nothing to load.
+      function settle() {
+        rootTiles.forEach(function (root) {
+          makeAvailable(root);
+          root.children.forEach(function (child) {
+            makeAvailable(child);
+            child.children.forEach(makeAvailable);
+          });
+        });
+        setCameraPosition(
+          quadtree,
+          frameState,
+          Rectangle.center(rootTiles[0].southwestChild.rectangle),
+          1,
+        );
+        return process(quadtree, isLoading);
+      }
+
+      // Renders a frame and returns whether it walked the quadtree.
+      function selects() {
+        ++frameState.frameNumber;
+        quadtree.beginFrame(frameState);
+        quadtree.render(frameState);
+        quadtree.endFrame(frameState);
+        return quadtree._lastSelectionFrameNumber === frameState.frameNumber;
+      }
+
+      it("reuses the previous selection while nothing has changed", function () {
+        return settle().then(function () {
+          const tiles = quadtree._tilesToRender.slice();
+          expect(tiles.length).toBeGreaterThan(0);
+
+          expect(selects()).toBe(false);
+          expect(selects()).toBe(false);
+          expect(quadtree._tilesToRender).toEqual(tiles);
+          expect(quadtree._tilesRenderedThisFrame.size).toBe(tiles.length);
+        });
+      });
+
+      it("selects every frame while tiles are loading", function () {
+        makeAvailable(rootTiles[0]);
+        makeAvailable(rootTiles[1]);
+        expect(selects()).toBe(true);
+        expect(isLoading()).toBe(true);
+        expect(selects()).toBe(true);
+      });
+
+      it("selects again when the camera moves", function () {
+        return settle().then(function () {
+          setCameraPosition(
+            quadtree,
+            frameState,
+            Rectangle.center(rootTiles[0].northeastChild.rectangle),
+            1,
+          );
+          expect(selects()).toBe(true);
+        });
+      });
+
+      it("selects again when the frame state changes", function () {
+        return settle().then(function () {
+          frameState.pixelRatio = 2.0;
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(false);
+
+          frameState.fog.enabled = true;
+          frameState.fog.density = 0.0002;
+          frameState.fog.sse = 2.0;
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(false);
+
+          frameState.cameraUnderground = true;
+          expect(selects()).toBe(true);
+        });
+      });
+
+      it("selects again when the quadtree settings change", function () {
+        return settle().then(function () {
+          quadtree.maximumScreenSpaceError = 4;
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(false);
+
+          quadtree.preloadSiblings = true;
+          expect(selects()).toBe(true);
+        });
+      });
+
+      it("selects twice after vertical exaggeration changes, the second time with updated tile bounds", function () {
+        return settle().then(function () {
+          frameState.verticalExaggeration = 2.0;
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(false);
+        });
+      });
+
+      it("selects again when the tile selection is invalidated", function () {
+        return settle().then(function () {
+          quadtree.invalidateTileSelection();
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(false);
+        });
+      });
+
+      it("selects again when an imagery layer is moved or removed", function () {
+        return settle().then(function () {
+          imageryLayerCollection.layerMoved.raiseEvent({}, 1, 0);
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(false);
+
+          imageryLayerCollection.layerRemoved.raiseEvent({}, 0);
+          expect(selects()).toBe(true);
+        });
+      });
+
+      it("selects again when all tiles are invalidated", function () {
+        return settle().then(function () {
+          quadtree.invalidateAllTiles();
+          expect(selects()).toBe(true);
+        });
+      });
+
+      it("selects every frame when reuseUnchangedTileSelection is false", function () {
+        return settle().then(function () {
+          quadtree.reuseUnchangedTileSelection = false;
+          expect(selects()).toBe(true);
+          expect(selects()).toBe(true);
+        });
+      });
+
+      it("selects every frame while the globe is clipped", function () {
+        return settle().then(function () {
+          tileProvider._clippingPolygons = { enabled: true };
+          expect(tileProvider.canReuseTileSelection()).toBe(false);
+          tileProvider._clippingPolygons = { enabled: false };
+          tileProvider._clippingPlanes = { enabled: true };
+          expect(tileProvider.canReuseTileSelection()).toBe(false);
+          tileProvider._clippingPlanes = undefined;
+          tileProvider._clippingPolygons = undefined;
+          expect(tileProvider.canReuseTileSelection()).toBe(true);
+        });
       });
     });
   });
@@ -1409,6 +1572,8 @@ describe("Scene/QuadtreePrimitive", function () {
         const quadtree = new QuadtreePrimitive({
           tileProvider: tileProvider,
         });
+        // Makes tiles renderable directly, outside the load queue.
+        quadtree.reuseUnchangedTileSelection = false;
 
         // Perform the normal two-phase updates so root tiles are actually loaded.
         quadtree.update(scene.frameState);
